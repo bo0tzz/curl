@@ -101,7 +101,7 @@ latest Firefox bundle.
 
 ## Native CA store
 
-If curl was built with Schannel or were instructed to use the native CA Store,
+If curl was built with Schannel or was instructed to use the native CA Store,
 then curl uses the certificates that are built into the OS. These are the same
 certificates that appear in the Internet Options control panel (under Windows)
 or Keychain Access application (under macOS). Any custom security rules for
