@@ -43,8 +43,6 @@ permissions: {}
 # - 10.9  Maverick (2013)      - LDAP
 # - 10.14 Mojave (2018)        - Secure Transport
 #
-# For Secure Transport, curl implements features that require a target
-# newer than the 10.8 required by `CFURLCreateDataAndPropertiesFromResource`.
 
 env:
   MAKEFLAGS: -j 4
@@ -100,18 +98,6 @@ jobs:
               --without-nghttp2 --without-ntlm-auth --without-ssl --without-zlib --without-zstd
 
             macos-version-min: '10.15'  # Catalina (2019)
-          - name: 'SecureTransport libssh2'
-            compiler: clang
-            configure: --enable-debug --with-secure-transport --with-libssh2=$(brew --prefix libssh2)
-            macos-version-min: '10.8'
-          - name: 'SecureTransport libssh2 10.12'
-            compiler: clang
-            configure: --enable-debug --with-secure-transport --with-libssh2=$(brew --prefix libssh2)
-            macos-version-min: '10.12'  # for monotonic timers
-          - name: 'SecureTransport libssh2'
-            compiler: gcc-12
-            configure: --enable-debug --with-secure-transport --with-libssh2=$(brew --prefix libssh2)
-            macos-version-min: '10.8'
           - name: 'LibreSSL +examples'
             compiler: clang
             install: libressl
@@ -140,9 +126,6 @@ jobs:
           - name: 'quictls +static libssh +examples'
             install: quictls libssh
             generate: -DOPENSSL_ROOT_DIR=$(brew --prefix quictls) -DBUILD_STATIC_LIBS=ON -DCURL_USE_LIBSSH2=OFF -DCURL_USE_LIBSSH=ON
-          - name: 'SecureTransport debug'
-            generate: -DCURL_USE_SECTRANSP=ON -DENABLE_DEBUG=ON
-            macos-version-min: '10.8'
           - name: 'LibreSSL !ldap heimdal c-ares +examples'
             install: libressl heimdal
             generate: -DOPENSSL_ROOT_DIR=$(brew --prefix libressl) -DENABLE_ARES=ON -DCURL_USE_GSSAPI=ON -DGSS_ROOT_DIR=$(brew --prefix heimdal) -DCURL_DISABLE_LDAP=ON
@@ -276,17 +259,6 @@ jobs:
       - name: 'test configs'
         run: grep -H -v '^#' bld/tests/config bld/tests/http/config.ini || true
 
-      - name: 'build-cert'
-        if: contains(matrix.build.generate, '-DCURL_USE_SECTRANSP=ON') || contains(matrix.build.configure, '--with-secure-transport')
-        run: |
-          if [ -n '${{ matrix.build.generate }}' ]; then
-            cmake --build bld --target clean-certs
-            cmake --build bld --target build-certs --parallel 1
-          else
-            make -C bld/tests/certs clean-certs
-            make -C bld/tests/certs build-certs -j1
-          fi
-
       - name: 'build'
         run: |
           if [ -n '${{ matrix.build.generate }}' ]; then
@@ -320,6 +292,12 @@ jobs:
           export TFLAGS='-j20 ${{ matrix.build.tflags }}'
           if [ -z '${{ matrix.build.torture }}' ]; then
             TFLAGS+=' ~2037 ~2041'  # flaky
+            if [[ '${{ matrix.compiler }}' = 'gcc'* ]]; then
+              TFLAGS+=' ~1156 ~1539'  # HTTP Content-Range, Content-Length
+              if [[ -n '${{ matrix.build.configure }}' ]]; then
+                TFLAGS+=' ~2100'  # 2100:'HTTP GET using DoH' https://github.com/curl/curl/actions/runs/9942146678/job/27462937524#step:15:5059
+              fi
+            fi
           fi
           source $HOME/venv/bin/activate
           rm -f $HOME/.curlrc
@@ -357,7 +335,7 @@ jobs:
             make -C bld examples V=1
           fi
 
-  combinations:  # Test buildability with host OS, Xcode / SDK, compiler, target-OS, Secure Transport/not, built tool, combinations
+  combinations:  # Test buildability with host OS, Xcode / SDK, compiler, target-OS, built tool, combinations
     if: true  # Set to `true` to enable this test matrix. It runs quickly.
     name: "${{ matrix.build == 'cmake' && 'CM' || 'AM' }} ${{ matrix.compiler }} ${{ matrix.image }} ${{ matrix.xcode }} ${{ matrix.config }}"
     runs-on: ${{ matrix.image }}
@@ -368,7 +346,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        config: [SecureTransport]  # also: OpenSSL
+        config:  # implied: OpenSSL
         compiler: [gcc-12, gcc-13, gcc-14, llvm@15, llvm@18, clang]
         # Xcode support matrix as of 2024-07, with default macOS SDK versions and OS names, years:
         # * = default Xcode on the runner.
@@ -412,7 +390,6 @@ jobs:
           - { image: macos-14, compiler: 'llvm@18' }
           - { image: macos-15, compiler: 'llvm@15' }
           # Reduce build combinations, by dropping less interesting ones
-          - { compiler: gcc-12, config: SecureTransport }
           - { compiler: gcc-13, build: cmake }
           - { compiler: gcc-14, build: autotools }
     steps:
@@ -480,7 +457,6 @@ jobs:
               CFLAGS+=" --sysroot=${sysroot}"
             fi
             [ '${{ matrix.config }}' = 'OpenSSL' ]         && options+=" --with-openssl=$(brew --prefix openssl)"
-            [ '${{ matrix.config }}' = 'SecureTransport' ] && options+=' --with-secure-transport'
             [ -n '${{ matrix.macos-version-min }}' ] && CFLAGS+=' -mmacosx-version-min=${{ matrix.macos-version-min }}'
             # would pick up nghttp2, libidn2, but libssh2 is disabled by default
             mkdir bld && cd bld && ../configure --enable-unity --enable-test-bundles --enable-warnings --enable-werror \
@@ -488,6 +464,18 @@ jobs:
               --disable-docs --disable-manual \
               --without-nghttp2 --without-libidn2 \
               --without-libpsl \
+              ${options}
+          else
+            [ '${{ matrix.config }}' = 'OpenSSL' ]         && options+=' -DCURL_USE_OPENSSL=ON'
+            [ -n '${{ matrix.macos-version-min }}' ] && options+=' -DCMAKE_OSX_DEPLOYMENT_TARGET=${{ matrix.macos-version-min }}'
+            # would pick up nghttp2, libidn2, and libssh2
+            cmake -B bld -DCMAKE_UNITY_BUILD=ON -DCURL_TEST_BUNDLES=ON -DCURL_WERROR=ON \
+              -DCMAKE_OSX_SYSROOT="${sysroot}" \
+              -DCMAKE_C_COMPILER_TARGET="$(uname -m | sed 's/arm64/aarch64/')-apple-darwin$(uname -r)" \
+              -DCMAKE_IGNORE_PREFIX_PATH="$(brew --prefix)" \
+              -DBUILD_LIBCURL_DOCS=OFF -DBUILD_MISC_DOCS=OFF -DENABLE_CURL_MANUAL=OFF \
+              -DUSE_NGHTTP2=OFF -DUSE_LIBIDN2=OFF \
+              -DCURL_USE_LIBPSL=OFF -DCURL_USE_LIBSSH2=OFF \
               ${options}
           fi
 
