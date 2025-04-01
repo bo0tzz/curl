@@ -214,7 +214,7 @@ struct Curl_multi *Curl_multi_handle(size_t ev_hashsize,  /* event hash */
                                      size_t dnssize,   /* dns hash */
                                      size_t sesssize)  /* TLS session cache */
 {
-  struct Curl_multi *multi = calloc(1, sizeof(struct Curl_multi));
+  struct Curl_multi *multi = CALLOC(1, sizeof(struct Curl_multi));
 
   if(!multi)
     return NULL;
@@ -285,7 +285,7 @@ error:
     Curl_close(&multi->admin);
   }
 
-  free(multi);
+  FREE(multi);
   return NULL;
 }
 
@@ -956,7 +956,7 @@ void Curl_multi_getsock(struct Curl_easy *data,
     break;
 
   case MSTATE_RATELIMITING:
-    /* we need to let time pass, ignore socket(s) */
+    /* we need to let time pass, ignore SOCKET(s) */
     expect_sockets = FALSE;
     break;
 
@@ -1114,14 +1114,14 @@ CURLMcode curl_multi_waitfds(CURLM *m,
  * be reset this way because an empty datagram would be sent. #9203
  *
  * "On Windows the internal state of FD_WRITE as returned from
- * WSAEnumNetworkEvents is only reset after successful send()."
+ * WSAEnumNetworkEvents is only reset after successful SEND()."
  */
 static void reset_socket_fdwrite(curl_socket_t s)
 {
   int t;
   int l = (int)sizeof(t);
   if(!getsockopt(s, SOL_SOCKET, SO_TYPE, (char *)&t, &l) && t == SOCK_STREAM)
-    send(s, NULL, 0, 0);
+    SEND(s, NULL, 0, 0);
 }
 #endif
 
@@ -1780,7 +1780,7 @@ static CURLMcode state_performing(struct Curl_easy *data,
       data->state.errorbuf = FALSE;
       if(!newurl)
         /* typically for HTTP_1_1_REQUIRED error on first flight */
-        newurl = strdup(data->state.url);
+        newurl = STRDUP(data->state.url);
       /* if we are to retry, set the result to OK and consider the request
          as done */
       retry = TRUE;
@@ -1821,7 +1821,7 @@ static CURLMcode state_performing(struct Curl_easy *data,
       if(!retry) {
         /* if the URL is a follow-location and not just a retried request then
            figure out the URL here */
-        free(newurl);
+        FREE(newurl);
         newurl = data->req.newurl;
         data->req.newurl = NULL;
         follow = FOLLOW_REDIR;
@@ -1842,7 +1842,7 @@ static CURLMcode state_performing(struct Curl_easy *data,
       /* but first check to see if we got a location info even though we are
          not following redirects */
       if(data->req.location) {
-        free(newurl);
+        FREE(newurl);
         newurl = data->req.location;
         data->req.location = NULL;
         result = multi_follow(data, handler, newurl, FOLLOW_FAKE);
@@ -1864,7 +1864,7 @@ static CURLMcode state_performing(struct Curl_easy *data,
        transfers */
     Curl_expire(data, 0, EXPIRE_RUN_NOW);
   }
-  free(newurl);
+  FREE(newurl);
   *resultp = result;
   return rc;
 }
@@ -1994,7 +1994,7 @@ static CURLMcode state_do(struct Curl_easy *data,
         /* Have error handler disconnect conn if we cannot retry */
         *stream_errorp = TRUE;
       }
-      free(newurl);
+      FREE(newurl);
     }
     else {
       /* failure detected */
@@ -2097,9 +2097,9 @@ static CURLMcode state_resolving(struct Curl_multi *multi,
   if(!dns)
     result = Curl_resolv_check(data, &dns);
 
-  /* Update sockets here, because the socket(s) may have been closed and the
+  /* Update sockets here, because the SOCKET(s) may have been closed and the
      application thus needs to be told, even if it is likely that the same
-     socket(s) will again be used further down. If the name has not yet been
+     SOCKET(s) will again be used further down. If the name has not yet been
      resolved, it is likely that new sockets have been opened in an attempt to
      contact another resolver. */
   rc = Curl_multi_ev_assess_xfer(multi, data);
@@ -2755,7 +2755,7 @@ CURLMcode curl_multi_cleanup(CURLM *m)
 #endif
 
     multi_xfer_bufs_free(multi);
-    free(multi);
+    FREE(multi);
 
     return CURLM_OK;
   }
@@ -3489,7 +3489,7 @@ unsigned int Curl_multi_max_concurrent_streams(struct Curl_multi *multi)
 CURL **curl_multi_get_handles(CURLM *m)
 {
   struct Curl_multi *multi = m;
-  CURL **a = malloc(sizeof(struct Curl_easy *) * (multi->num_easy + 1));
+  CURL **a = MALLOC(sizeof(struct Curl_easy *) * (multi->num_easy + 1));
   if(a) {
     unsigned int i = 0;
     struct Curl_llist_node *e;
@@ -3527,13 +3527,13 @@ CURLcode Curl_multi_xfer_buf_borrow(struct Curl_easy *data,
   if(data->multi->xfer_buf &&
      data->set.buffer_size > data->multi->xfer_buf_len) {
     /* not large enough, get a new one */
-    free(data->multi->xfer_buf);
+    FREE(data->multi->xfer_buf);
     data->multi->xfer_buf = NULL;
     data->multi->xfer_buf_len = 0;
   }
 
   if(!data->multi->xfer_buf) {
-    data->multi->xfer_buf = malloc((size_t)data->set.buffer_size);
+    data->multi->xfer_buf = MALLOC((size_t)data->set.buffer_size);
     if(!data->multi->xfer_buf) {
       failf(data, "could not allocate xfer_buf of %zu bytes",
             (size_t)data->set.buffer_size);
@@ -3580,13 +3580,13 @@ CURLcode Curl_multi_xfer_ulbuf_borrow(struct Curl_easy *data,
   if(data->multi->xfer_ulbuf &&
      data->set.upload_buffer_size > data->multi->xfer_ulbuf_len) {
     /* not large enough, get a new one */
-    free(data->multi->xfer_ulbuf);
+    FREE(data->multi->xfer_ulbuf);
     data->multi->xfer_ulbuf = NULL;
     data->multi->xfer_ulbuf_len = 0;
   }
 
   if(!data->multi->xfer_ulbuf) {
-    data->multi->xfer_ulbuf = malloc((size_t)data->set.upload_buffer_size);
+    data->multi->xfer_ulbuf = MALLOC((size_t)data->set.upload_buffer_size);
     if(!data->multi->xfer_ulbuf) {
       failf(data, "could not allocate xfer_ulbuf of %zu bytes",
             (size_t)data->set.upload_buffer_size);
@@ -3627,13 +3627,13 @@ CURLcode Curl_multi_xfer_sockbuf_borrow(struct Curl_easy *data,
 
   if(data->multi->xfer_sockbuf && blen > data->multi->xfer_sockbuf_len) {
     /* not large enough, get a new one */
-    free(data->multi->xfer_sockbuf);
+    FREE(data->multi->xfer_sockbuf);
     data->multi->xfer_sockbuf = NULL;
     data->multi->xfer_sockbuf_len = 0;
   }
 
   if(!data->multi->xfer_sockbuf) {
-    data->multi->xfer_sockbuf = malloc(blen);
+    data->multi->xfer_sockbuf = MALLOC(blen);
     if(!data->multi->xfer_sockbuf) {
       failf(data, "could not allocate xfer_sockbuf of %zu bytes", blen);
       return CURLE_OUT_OF_MEMORY;

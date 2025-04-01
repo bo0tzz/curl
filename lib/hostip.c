@@ -415,7 +415,7 @@ UNITTEST CURLcode Curl_shuffle_addr(struct Curl_easy *data,
     struct Curl_addrinfo **nodes;
     infof(data, "Shuffling %i addresses", num_addrs);
 
-    nodes = malloc(num_addrs*sizeof(*nodes));
+    nodes = MALLOC(num_addrs*sizeof(*nodes));
     if(nodes) {
       int i;
       unsigned int *rnd;
@@ -427,7 +427,7 @@ UNITTEST CURLcode Curl_shuffle_addr(struct Curl_easy *data,
         nodes[i] = nodes[i-1]->ai_next;
       }
 
-      rnd = malloc(rnd_size);
+      rnd = MALLOC(rnd_size);
       if(rnd) {
         /* Fisher-Yates shuffle */
         if(Curl_rand(data, (unsigned char *)rnd, rnd_size) == CURLE_OK) {
@@ -446,11 +446,11 @@ UNITTEST CURLcode Curl_shuffle_addr(struct Curl_easy *data,
           nodes[num_addrs-1]->ai_next = NULL;
           *addr = nodes[0];
         }
-        free(rnd);
+        FREE(rnd);
       }
       else
         result = CURLE_OUT_OF_MEMORY;
-      free(nodes);
+      FREE(nodes);
     }
     else
       result = CURLE_OUT_OF_MEMORY;
@@ -493,7 +493,7 @@ Curl_cache_addr(struct Curl_easy *data,
     hostlen = strlen(hostname);
 
   /* Create a new cache entry */
-  dns = calloc(1, sizeof(struct Curl_dns_entry) + hostlen);
+  dns = CALLOC(1, sizeof(struct Curl_dns_entry) + hostlen);
   if(!dns) {
     return NULL;
   }
@@ -519,7 +519,7 @@ Curl_cache_addr(struct Curl_easy *data,
   dns2 = Curl_hash_add(data->dns.hostcache, entry_id, entry_len + 1,
                        (void *)dns);
   if(!dns2) {
-    free(dns);
+    FREE(dns);
     return NULL;
   }
 
@@ -538,7 +538,7 @@ static struct Curl_addrinfo *get_localhost6(int port, const char *name)
   struct sockaddr_in6 sa6;
   unsigned char ipv6[16];
   unsigned short port16 = (unsigned short)(port & 0xffff);
-  ca = calloc(1, sizeof(struct Curl_addrinfo) + ss_size + hostlen + 1);
+  ca = CALLOC(1, sizeof(struct Curl_addrinfo) + ss_size + hostlen + 1);
   if(!ca)
     return NULL;
 
@@ -587,7 +587,7 @@ static struct Curl_addrinfo *get_localhost(int port, const char *name)
     return NULL;
   memcpy(&sa.sin_addr, &ipv4, sizeof(ipv4));
 
-  ca = calloc(1, sizeof(struct Curl_addrinfo) + ss_size + hostlen + 1);
+  ca = CALLOC(1, sizeof(struct Curl_addrinfo) + ss_size + hostlen + 1);
   if(!ca)
     return NULL;
   ca->ai_flags     = 0;
@@ -628,7 +628,7 @@ bool Curl_ipv6works(struct Curl_easy *data)
   else {
     int ipv6_works = -1;
     /* probe to see if we have a working IPv6 stack */
-    curl_socket_t s = socket(PF_INET6, SOCK_DGRAM, 0);
+    curl_socket_t s = SOCKET(PF_INET6, SOCK_DGRAM, 0);
     if(s == CURL_SOCKET_BAD)
       /* an IPv6 address was requested but we cannot get/use one */
       ipv6_works = 0;
@@ -1085,10 +1085,10 @@ static void hostcache_unlink_entry(void *entry)
 #ifdef USE_HTTPSRR
     if(dns->hinfo) {
       Curl_httpsrr_cleanup(dns->hinfo);
-      free(dns->hinfo);
+      FREE(dns->hinfo);
     }
 #endif
-    free(dns);
+    FREE(dns);
   }
 }
 

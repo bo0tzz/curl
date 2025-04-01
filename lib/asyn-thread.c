@@ -160,7 +160,7 @@ void destroy_thread_sync_data(struct thread_sync_data *tsd)
 {
   Curl_mutex_destroy(&tsd->mutx);
 
-  free(tsd->hostname);
+  FREE(tsd->hostname);
 
   if(tsd->res)
     Curl_freeaddrinfo(tsd->res);
@@ -218,7 +218,7 @@ int init_thread_sync_data(struct thread_data *td,
   /* Copying hostname string because original can be destroyed by parent
    * thread during gethostbyname execution.
    */
-  tsd->hostname = strdup(hostname);
+  tsd->hostname = STRDUP(hostname);
   if(!tsd->hostname)
     goto err_exit;
 

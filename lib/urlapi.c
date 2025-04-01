@@ -93,16 +93,16 @@ static CURLUcode parseurl_and_replace(const char *url, CURLU *u,
 
 static void free_urlhandle(struct Curl_URL *u)
 {
-  free(u->scheme);
-  free(u->user);
-  free(u->password);
-  free(u->options);
-  free(u->host);
-  free(u->zoneid);
-  free(u->port);
-  free(u->path);
-  free(u->query);
-  free(u->fragment);
+  FREE(u->scheme);
+  FREE(u->user);
+  FREE(u->password);
+  FREE(u->options);
+  FREE(u->host);
+  FREE(u->zoneid);
+  FREE(u->port);
+  FREE(u->path);
+  FREE(u->query);
+  FREE(u->fragment);
 }
 
 /*
@@ -385,17 +385,17 @@ static CURLUcode parse_hostname_login(struct Curl_URL *u,
       result = CURLUE_USER_NOT_ALLOWED;
       goto out;
     }
-    free(u->user);
+    FREE(u->user);
     u->user = userp;
   }
 
   if(passwdp) {
-    free(u->password);
+    FREE(u->password);
     u->password = passwdp;
   }
 
   if(optionsp) {
-    free(u->options);
+    FREE(u->options);
     u->options = optionsp;
   }
 
@@ -405,9 +405,9 @@ static CURLUcode parse_hostname_login(struct Curl_URL *u,
 
 out:
 
-  free(userp);
-  free(passwdp);
-  free(optionsp);
+  FREE(userp);
+  FREE(passwdp);
+  FREE(optionsp);
   u->user = NULL;
   u->password = NULL;
   u->options = NULL;
@@ -460,7 +460,7 @@ UNITTEST CURLUcode Curl_parse_port(struct Curl_URL *u, struct dynbuf *host,
 
     u->portnum = (unsigned short) port;
     /* generate a new port number string to get rid of leading zeroes etc */
-    free(u->port);
+    FREE(u->port);
     u->port = aprintf("%" CURL_FORMAT_CURL_OFF_T, port);
     if(!u->port)
       return CURLUE_OUT_OF_MEMORY;
@@ -498,7 +498,7 @@ static CURLUcode ipv6_parse(struct Curl_URL *u, char *hostname,
       if(!i || (']' != *h))
         return CURLUE_BAD_IPV6;
       zoneid[i] = 0;
-      u->zoneid = strdup(zoneid);
+      u->zoneid = STRDUP(zoneid);
       if(!u->zoneid)
         return CURLUE_OUT_OF_MEMORY;
       hostname[len] = ']'; /* insert end bracket */
@@ -676,7 +676,7 @@ static CURLUcode urldecode_host(struct dynbuf *host)
       return CURLUE_BAD_HOSTNAME;
     Curl_dyn_reset(host);
     result = Curl_dyn_addn(host, decoded, dlen);
-    free(decoded);
+    FREE(decoded);
     if(result)
       return cc2cu(result);
   }
@@ -751,7 +751,7 @@ CURLUcode Curl_url_set_authority(CURLU *u, const char *authority)
   if(result)
     Curl_dyn_free(&host);
   else {
-    free(u->host);
+    FREE(u->host);
     u->host = Curl_dyn_ptr(&host);
   }
   return result;
@@ -895,7 +895,7 @@ end:
     if(Curl_dyn_len(&out))
       *outp = Curl_dyn_ptr(&out);
     else {
-      *outp = strdup("");
+      *outp = STRDUP("");
       if(!*outp)
         return 1;
     }
@@ -941,7 +941,7 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
     path = &url[5];
     pathlen = urllen - 5;
 
-    u->scheme = strdup("file");
+    u->scheme = STRDUP("file");
     if(!u->scheme) {
       result = CURLUE_OUT_OF_MEMORY;
       goto fail;
@@ -1088,7 +1088,7 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
     }
 
     if(schemep) {
-      u->scheme = strdup(schemep);
+      u->scheme = STRDUP(schemep);
       if(!u->scheme) {
         result = CURLUE_OUT_OF_MEMORY;
         goto fail;
@@ -1125,7 +1125,7 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
         else
           schemep = "http";
 
-        u->scheme = strdup(schemep);
+        u->scheme = STRDUP(schemep);
         if(!u->scheme) {
           result = CURLUE_OUT_OF_MEMORY;
           goto fail;
@@ -1198,7 +1198,7 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
     }
     else {
       /* single byte query */
-      u->query = strdup("");
+      u->query = STRDUP("");
       if(!u->query) {
         result = CURLUE_OUT_OF_MEMORY;
         goto fail;
@@ -1242,7 +1242,7 @@ static CURLUcode parseurl(const char *url, CURLU *u, unsigned int flags)
         goto fail;
       }
       if(dedot) {
-        free(u->path);
+        FREE(u->path);
         u->path = dedot;
       }
     }
@@ -1278,21 +1278,21 @@ static CURLUcode parseurl_and_replace(const char *url, CURLU *u,
  */
 CURLU *curl_url(void)
 {
-  return calloc(1, sizeof(struct Curl_URL));
+  return CALLOC(1, sizeof(struct Curl_URL));
 }
 
 void curl_url_cleanup(CURLU *u)
 {
   if(u) {
     free_urlhandle(u);
-    free(u);
+    FREE(u);
   }
 }
 
 #define DUP(dest, src, name)                    \
   do {                                          \
     if(src->name) {                             \
-      dest->name = strdup(src->name);           \
+      dest->name = STRDUP(src->name);           \
       if(!dest->name)                           \
         goto fail;                              \
     }                                           \
@@ -1300,7 +1300,7 @@ void curl_url_cleanup(CURLU *u)
 
 CURLU *curl_url_dup(const CURLU *in)
 {
-  struct Curl_URL *u = calloc(1, sizeof(struct Curl_URL));
+  struct Curl_URL *u = CALLOC(1, sizeof(struct Curl_URL));
   if(u) {
     DUP(u, in, scheme);
     DUP(u, in, user);
@@ -1529,7 +1529,7 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
                     u->query ? u->query : "",
                     show_fragment ? "#": "",
                     u->fragment ? u->fragment : "");
-      free(allochost);
+      FREE(allochost);
     }
     if(!url)
       return CURLUE_OUT_OF_MEMORY;
@@ -1560,7 +1560,7 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
       /* this unconditional rejection of control bytes is documented
          API behavior */
       CURLcode res = Curl_urldecode(*part, 0, &decoded, &dlen, REJECT_CTRL);
-      free(*part);
+      FREE(*part);
       if(res) {
         *part = NULL;
         return CURLUE_URLDECODE;
@@ -1575,7 +1575,7 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
       uc = urlencode_str(&enc, *part, partlen, TRUE, what == CURLUPART_QUERY);
       if(uc)
         return uc;
-      free(*part);
+      FREE(*part);
       *part = Curl_dyn_ptr(&enc);
     }
     else if(punycode) {
@@ -1588,7 +1588,7 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
         if(result)
           return (result == CURLE_OUT_OF_MEMORY) ?
             CURLUE_OUT_OF_MEMORY : CURLUE_BAD_HOSTNAME;
-        free(*part);
+        FREE(*part);
         *part = allochost;
 #endif
       }
@@ -1603,7 +1603,7 @@ CURLUcode curl_url_get(const CURLU *u, CURLUPart what,
         if(result)
           return (result == CURLE_OUT_OF_MEMORY) ?
             CURLUE_OUT_OF_MEMORY : CURLUE_BAD_HOSTNAME;
-        free(*part);
+        FREE(*part);
         *part = allochost;
 #endif
       }
@@ -1741,7 +1741,7 @@ CURLUcode curl_url_set(CURLU *u, CURLUPart what,
       tmp = aprintf("%" CURL_FORMAT_CURL_OFF_T, port);
       if(!tmp)
         return CURLUE_OUT_OF_MEMORY;
-      free(u->port);
+      FREE(u->port);
       u->port = tmp;
       u->portnum = (unsigned short)port;
       return CURLUE_OK;
@@ -1786,7 +1786,7 @@ CURLUcode curl_url_set(CURLU *u, CURLUPart what,
     DEBUGASSERT(oldurl); /* it is set here */
     /* apply the relative part to create a new URL */
     uc = redirect_url(oldurl, part, u, flags);
-    free(oldurl);
+    FREE(oldurl);
     return uc;
   }
   default:
@@ -1873,7 +1873,7 @@ CURLUcode curl_url_set(CURLU *u, CURLUPart what,
         if(Curl_dyn_add(&qbuf, newp))
           goto nomem;
         Curl_dyn_free(&enc);
-        free(*storep);
+        FREE(*storep);
         *storep = Curl_dyn_ptr(&qbuf);
         return CURLUE_OK;
 nomem:
@@ -1900,7 +1900,7 @@ nomem:
             Curl_urldecode(newp, n, &decoded, &dlen, REJECT_CTRL);
           if(result || hostname_check(u, decoded, dlen))
             bad = TRUE;
-          free(decoded);
+          FREE(decoded);
         }
         else if(hostname_check(u, (char *)CURL_UNCONST(newp), n))
           bad = TRUE;
@@ -1911,7 +1911,7 @@ nomem:
       }
     }
 
-    free(*storep);
+    FREE(*storep);
     *storep = (char *)CURL_UNCONST(newp);
   }
   return CURLUE_OK;
