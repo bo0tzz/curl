@@ -1,0 +1,21 @@
+on:
+  workflow_dispatch:
+    inputs:
+      timeout:
+        required: false
+        type: number
+        description: How long to run for, in minutes.
+        default: '10'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  randdisable:
+    runs-on: ubuntu-latest
+    steps:
+      - run: ./scripts/randdisable
+        timeout-minutes: ${{ inputs.timeout }}
