@@ -5,7 +5,7 @@ on:
         required: false
         type: number
         description: How long to run for, in minutes.
-        default: '10'
+        default: 10
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -17,5 +17,9 @@ jobs:
   randdisable:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+          
       - run: ./scripts/randdisable
         timeout-minutes: ${{ inputs.timeout }}
