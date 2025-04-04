@@ -5,7 +5,7 @@ on:
         required: false
         type: number
         description: How long to run for, in minutes.
-        default: 10
+        default: '10'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -22,4 +22,4 @@ jobs:
           persist-credentials: false
           
       - run: ./scripts/randdisable
-        timeout-minutes: ${{ inputs.timeout }}
+        timeout-minutes: ${{ fromJSON(inputs.timeout) }} # Apparently this is the only way to make it a number
