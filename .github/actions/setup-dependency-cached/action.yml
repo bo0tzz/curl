@@ -1,0 +1,25 @@
+name: 'setup dependency cached'
+inputs:
+  id:
+    description: 'Dependency name'
+    required: true
+  version:
+    description: 'Dependency version'
+    required: true
+  run:
+    description: 'Build script'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: 'cache'
+      uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+      id: cache
+      with:
+        path: ~/${{ inputs.id }}
+        key: ${{ runner.os }}-build-cache-${{ inputs.id }}-${{ inputs.version }}
+
+    - name: 'build'
+      if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: ${{ inputs.run }}
