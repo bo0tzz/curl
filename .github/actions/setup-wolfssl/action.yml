@@ -6,9 +6,9 @@ inputs:
     options:
       - all
       - opensslextra
-env:
-  # renovate: datasource=github-tags depName=wolfSSL/wolfssl versioning=semver extractVersion=^v?(?<version>.+)-stable$ registryUrl=https://github.com
-  version: 5.7.6
+  version:
+    # renovate: datasource=github-tags depName=wolfSSL/wolfssl versioning=semver extractVersion=^v?(?<version>.+)-stable$ registryUrl=https://github.com
+    default: 5.7.6
 runs:
   using: "composite"
   steps:
@@ -31,12 +31,12 @@ runs:
       id: setup
       with:
         id: wolfssl-${{ inputs.flavour }}
-        version: ${{ env.version }}
+        version: ${{ inputs.version }}
         run: |
           curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
-            https://github.com/wolfSSL/wolfssl/archive/v${{ env.version }}-stable.tar.gz
-          tar -xzf v${{ env.version }}-stable.tar.gz
-          cd wolfssl-${{ env.version }}-stable
+            https://github.com/wolfSSL/wolfssl/archive/v${{ inputs.version }}-stable.tar.gz
+          tar -xzf v${{ inputs.version }}-stable.tar.gz
+          cd wolfssl-${{ inputs.version }}-stable
           ./autogen.sh
           ./configure ${{ steps.parameters.outputs.flags }}
           make install

@@ -1,7 +1,8 @@
 name: 'setup bearssl'
-env:
-  # unhandled
-  version: 0.6
+inputs:
+  version:
+    # unhandled
+    default: 0.6
 runs:
   using: "composite"
   steps:
@@ -10,12 +11,12 @@ runs:
       id: setup
       with:
         id: bearssl
-        version: ${{ env.version }}
+        version: ${{ inputs.version }}
         run: |
           curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
-          https://bearssl.org/bearssl-${{ env.version }}.tar.gz
-          tar -xzf bearssl-${{ env.version }}.tar.gz
-          cd bearssl-${{ env.version }}
+          https://bearssl.org/bearssl-${{ inputs.version }}.tar.gz
+          tar -xzf bearssl-${{ inputs.version }}.tar.gz
+          cd bearssl-${{ inputs.version }}
           make
           mkdir -p $HOME/bearssl/lib $HOME/bearssl/include
           cp inc/*.h $HOME/bearssl/include
