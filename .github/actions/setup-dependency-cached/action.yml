@@ -11,7 +11,6 @@ inputs:
     required: true
   path:
     description: 'Cache path'
-    default: ${{ inputs.id }} # TODO: Validate this is allowed
 runs:
   using: "composite"
   steps:
@@ -19,7 +18,7 @@ runs:
       uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
       id: cache
       with:
-        path: ~/${{ inputs.path }}
+        path: ~/${{ inputs.path || inputs.id }}
         key: ${{ runner.os }}-build-cache-${{ inputs.id }}-${{ inputs.version }}
 
     - name: 'build'
