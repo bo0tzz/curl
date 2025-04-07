@@ -14,18 +14,18 @@ runs:
   steps:
     - name: 'parameters'
       id: parameters
-      if: ${{ inputs.flavour == 'all' }}
       shell: bash
       run: |
-        echo "flags=--disable-dependency-tracking --enable-tls13 --enable-harden --enable-all \
-            --disable-benchmark --disable-crypttests --disable-examples --prefix=$HOME/wolfssl-all" >> $GITHUB_OUTPUT
-    - name: 'parameters'
-      id: parameters
-      if: ${{ inputs.flavour == 'opensslextra' }}
-      shell: bash
-      run: |
-        echo "flags=--disable-dependency-tracking --enable-tls13 --enable-harden --enable-ech --enable-opensslextra \
-            --disable-benchmark --disable-crypttests --disable-examples --prefix=$HOME/wolfssl-opensslextra" >> $GITHUB_OUTPUT
+        case "${{ inputs.flavour }}" in
+          "all")
+            FLAGS="--disable-dependency-tracking --enable-tls13 --enable-harden --enable-all \
+            --disable-benchmark --disable-crypttests --disable-examples --prefix=$HOME/wolfssl-all" ;;
+          "opensslextra")
+            FLAGS="--disable-dependency-tracking --enable-tls13 --enable-harden --enable-ech --enable-opensslextra \
+            --disable-benchmark --disable-crypttests --disable-examples --prefix=$HOME/wolfssl-opensslextra" ;;
+        esac
+        
+        echo "flags=$FLAGS" >> $GITHUB_OUTPUT
     - name: 'setup'
       uses: ./.github/actions/setup-dependency-cached
       id: setup
