@@ -1,0 +1,22 @@
+name: 'setup wolfssh'
+env:
+  # renovate: datasource=github-tags depName=wolfSSL/wolfssh versioning=semver extractVersion=^v?(?<version>.+)-stable$ registryUrl=https://github.com
+  version: 1.4.19
+runs:
+  using: "composite"
+  steps:
+    - name: 'setup'
+      uses: ./.github/actions/setup-dependency-cached
+      id: setup
+      with:
+        id: wolfssh
+        version: ${{ env.version }}
+        run: |
+          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
+            https://github.com/wolfSSL/wolfssh/archive/v${{ env.version }}-stable.tar.gz
+          tar -xzf v${{ env.version }}-stable.tar.gz
+          cd wolfssh-${{ env.version }}-stable
+          ./autogen.sh
+          ./configure --disable-dependency-tracking --with-wolfssl=$HOME/wolfssl-all --enable-scp --enable-sftp --disable-term \
+            --disable-examples --prefix=$HOME/wolfssh
+          make install

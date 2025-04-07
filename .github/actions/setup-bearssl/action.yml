@@ -1,4 +1,7 @@
 name: 'setup bearssl'
+env:
+  # unhandled
+  version: 0.6
 runs:
   using: "composite"
   steps:
@@ -7,8 +10,7 @@ runs:
       id: setup
       with:
         id: bearssl
-        # unhandled
-        version: 0.6
+        version: ${{ env.version }}
         run: |
           curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
           https://bearssl.org/bearssl-${{ env.version }}.tar.gz

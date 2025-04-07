@@ -1,0 +1,20 @@
+name: 'setup libressl'
+env:
+  # renovate: datasource=github-tags depName=libressl-portable/portable versioning=semver registryUrl=https://github.com
+  version: 4.0.0
+runs:
+  using: "composite"
+  steps:
+    - name: 'setup'
+      uses: ./.github/actions/setup-dependency-cached
+      id: setup
+      with:
+        id: libressl
+        version: ${{ env.version }}
+        run: |
+          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
+          https://github.com/libressl/portable/releases/download/v${{ env.version }}/libressl-${{ env.version }}.tar.gz
+          tar -xzf libressl-${{ env.version }}.tar.gz
+          cd libressl-${{ env.version }}
+          ./configure --disable-dependency-tracking --prefix=$HOME/libressl
+          make install

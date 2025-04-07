@@ -38,12 +38,6 @@ permissions: {}
 env:
   MAKEFLAGS: -j 5
   CURL_CLANG_TIDYFLAGS: '-checks=-clang-analyzer-security.insecureAPI.strcpy,-clang-analyzer-optin.performance.Padding,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-clang-analyzer-valist.Uninitialized'
-  # renovate: datasource=github-tags depName=libressl-portable/portable versioning=semver registryUrl=https://github.com
-  libressl-version: 4.0.0
-  # renovate: datasource=github-tags depName=wolfSSL/wolfssl versioning=semver extractVersion=^v?(?<version>.+)-stable$ registryUrl=https://github.com
-  wolfssl-version: 5.7.6
-  # renovate: datasource=github-tags depName=wolfSSL/wolfssh versioning=semver extractVersion=^v?(?<version>.+)-stable$ registryUrl=https://github.com
-  wolfssh-version: 1.4.19
   # renovate: datasource=github-tags depName=Mbed-TLS/mbedtls versioning=semver registryUrl=https://github.com
   mbedtls-version: 3.6.3
   # renovate: datasource=github-tags depName=nibanks/msh3 versioning=semver registryUrl=https://github.com
@@ -337,91 +331,29 @@ jobs:
         uses: ./.github/actions/setup-bearssl
         id: setup-bearssl
 
-      - name: 'cache libressl'
+      - name: 'setup libressl'
         if: contains(matrix.build.install_steps, 'libressl')
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
-        id: cache-libressl
-        env:
-          cache-name: cache-libressl
-        with:
-          path: ~/libressl
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.libressl-version }}
+        uses: ./.github/actions/setup-libressl
+        id: setup-libressl
 
-      - name: 'build libressl'
-        if: contains(matrix.build.install_steps, 'libressl') && steps.cache-libressl.outputs.cache-hit != 'true'
-        run: |
-          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
-            https://github.com/libressl/portable/releases/download/v${{ env.libressl-version }}/libressl-${{ env.libressl-version }}.tar.gz
-          tar -xzf libressl-${{ env.libressl-version }}.tar.gz
-          cd libressl-${{ env.libressl-version }}
-          ./configure --disable-dependency-tracking --prefix=$HOME/libressl
-          make install
-
-      - name: 'cache wolfssl (all)'
+      - name: 'setup wolfssl (all)'
         if: contains(matrix.build.install_steps, 'wolfssl-all')
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
-        id: cache-wolfssl-all
-        env:
-          cache-name: cache-wolfssl-all
+        uses: ./.github/actions/setup-wolfssl
+        id: setup-wolfssl-all
         with:
-          path: ~/wolfssl-all
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.wolfssl-version }}
+          flavour: all
 
-      - name: 'build wolfssl (all)'
-        if: contains(matrix.build.install_steps, 'wolfssl-all') && steps.cache-wolfssl-all.outputs.cache-hit != 'true'
-        run: |
-          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
-            https://github.com/wolfSSL/wolfssl/archive/v${{ env.wolfssl-version }}-stable.tar.gz
-          tar -xzf v${{ env.wolfssl-version }}-stable.tar.gz
-          cd wolfssl-${{ env.wolfssl-version }}-stable
-          ./autogen.sh
-          ./configure --disable-dependency-tracking --enable-tls13 --enable-harden --enable-all \
-            --disable-benchmark --disable-crypttests --disable-examples --prefix=$HOME/wolfssl-all
-          make install
-
-      - name: 'cache wolfssl (opensslextra)'
+      - name: 'setup wolfssl (opensslextra)'
         if: contains(matrix.build.install_steps, 'wolfssl-opensslextra')
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
-        id: cache-wolfssl-opensslextra
-        env:
-          cache-name: cache-wolfssl-opensslextra
+        uses: ./.github/actions/setup-wolfssl
+        id: setup-wolfssl-opensslextra
         with:
-          path: ~/wolfssl-opensslextra
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.wolfssl-version }}
+          flavour: opensslextra
 
-      - name: 'build wolfssl (opensslextra)'
-        if: contains(matrix.build.install_steps, 'wolfssl-opensslextra') && steps.cache-wolfssl-opensslextra.outputs.cache-hit != 'true'
-        run: |
-          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
-            https://github.com/wolfSSL/wolfssl/archive/v${{ env.wolfssl-version }}-stable.tar.gz
-          tar -xzf v${{ env.wolfssl-version }}-stable.tar.gz
-          cd wolfssl-${{ env.wolfssl-version }}-stable
-          ./autogen.sh
-          ./configure --disable-dependency-tracking --enable-tls13 --enable-harden --enable-ech --enable-opensslextra \
-            --disable-benchmark --disable-crypttests --disable-examples --prefix=$HOME/wolfssl-opensslextra
-          make install
-
-      - name: 'cache wolfssh'
-        if: contains(matrix.build.install_steps, 'wolfssl')
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
-        id: cache-wolfssh
-        env:
-          cache-name: cache-wolfssh
-        with:
-          path: ~/wolfssh
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.wolfssh-version }}-${{ env.wolfssl-version }}
-
-      - name: 'build wolfssh'
-        if: contains(matrix.build.install_steps, 'wolfssh') && steps.cache-wolfssh.outputs.cache-hit != 'true'
-        run: |
-          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
-            https://github.com/wolfSSL/wolfssh/archive/v${{ env.wolfssh-version }}-stable.tar.gz
-          tar -xzf v${{ env.wolfssh-version }}-stable.tar.gz
-          cd wolfssh-${{ env.wolfssh-version }}-stable
-          ./autogen.sh
-          ./configure --disable-dependency-tracking --with-wolfssl=$HOME/wolfssl-all --enable-scp --enable-sftp --disable-term \
-            --disable-examples --prefix=$HOME/wolfssh
-          make install
+      - name: 'setup wolfssh'
+        if: contains(matrix.build.install_steps, 'wolfssh')
+        uses: ./.github/actions/setup-wolfssh
+        id: setup-wolfssh
 
       - name: 'cache mbedtls'
         if: contains(matrix.build.install_steps, 'mbedtls')
