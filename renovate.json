@@ -71,7 +71,6 @@
     {
       "customType": "regex",
       "fileMatch": [
-        "^.github/workflows/linux.yml$",
         "^.github/workflows/http3-linux.yml$"
       ],
       "matchStrings": [

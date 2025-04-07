@@ -1,0 +1,25 @@
+name: 'setup mbedtls'
+inputs:
+  version:
+    # renovate: datasource=github-tags depName=Mbed-TLS/mbedtls versioning=semver registryUrl=https://github.com
+    default: 3.6.3
+runs:
+  using: "composite"
+  steps:
+    - name: 'setup'
+      uses: ./.github/actions/setup-dependency-cached
+      id: setup
+      with:
+        id: mbedtls
+        version: ${{ inputs.version }}
+        run: |
+          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
+            https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-${{ inputs.version }}/mbedtls-${{ inputs.version }}.tar.bz2
+          tar -xjf mbedtls-${{ inputs.version }}.tar.bz2
+          cd mbedtls-${{ inputs.version }}
+          ./scripts/config.py set MBEDTLS_THREADING_C
+          ./scripts/config.py set MBEDTLS_THREADING_PTHREAD
+          cmake -B . -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=$HOME/mbedtls \
+            -DENABLE_PROGRAMS=OFF -DENABLE_TESTING=OFF
+          cmake --build .
+          cmake --install .

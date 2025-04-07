@@ -38,14 +38,10 @@ permissions: {}
 env:
   MAKEFLAGS: -j 5
   CURL_CLANG_TIDYFLAGS: '-checks=-clang-analyzer-security.insecureAPI.strcpy,-clang-analyzer-optin.performance.Padding,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-clang-analyzer-valist.Uninitialized'
-  # renovate: datasource=github-tags depName=Mbed-TLS/mbedtls versioning=semver registryUrl=https://github.com
-  mbedtls-version: 3.6.3
   # renovate: datasource=github-tags depName=nibanks/msh3 versioning=semver registryUrl=https://github.com
   msh3-version: 0.6.0
   # renovate: datasource=github-tags depName=awslabs/aws-lc versioning=semver registryUrl=https://github.com
   awslc-version: 1.49.0
-  # handled in renovate.json
-  openssl-version: 3.4.1
   # handled in renovate.json
   quictls-version: 3.3.0
   # renovate: datasource=github-tags depName=rustls/rustls-ffi versioning=semver registryUrl=https://github.com
@@ -355,48 +351,15 @@ jobs:
         uses: ./.github/actions/setup-wolfssh
         id: setup-wolfssh
 
-      - name: 'cache mbedtls'
+      - name: 'setup mbedtls'
         if: contains(matrix.build.install_steps, 'mbedtls')
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
-        id: cache-mbedtls
-        env:
-          cache-name: cache-mbedtls-threadsafe
-        with:
-          path: ~/mbedtls
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.mbedtls-version }}
+        uses: ./.github/actions/setup-mbedtls
+        id: setup-mbedtls
 
-      - name: 'build mbedtls'
-        if: contains(matrix.build.install_steps, 'mbedtls') && steps.cache-mbedtls.outputs.cache-hit != 'true'
-        run: |
-          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
-            https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-${{ env.mbedtls-version }}/mbedtls-${{ env.mbedtls-version }}.tar.bz2
-          tar -xjf mbedtls-${{ env.mbedtls-version }}.tar.bz2
-          cd mbedtls-${{ env.mbedtls-version }}
-          ./scripts/config.py set MBEDTLS_THREADING_C
-          ./scripts/config.py set MBEDTLS_THREADING_PTHREAD
-          cmake -B . -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=$HOME/mbedtls \
-            -DENABLE_PROGRAMS=OFF -DENABLE_TESTING=OFF
-          cmake --build .
-          cmake --install .
-
-      - name: 'cache openssl (thread sanitizer)'
+      - name: 'setup openssl (thread sanitizer)'
         if: contains(matrix.build.install_steps, 'openssl-tsan')
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
-        id: cache-openssl-tsan
-        env:
-          cache-name: cache-openssl-tsan
-        with:
-          path: ~/openssl
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.openssl-version }}
-
-      - name: 'build openssl (thread sanitizer)'
-        if: contains(matrix.build.install_steps, 'openssl-tsan') && steps.cache-openssl-tsan.outputs.cache-hit != 'true'
-        run: |
-          git clone --quiet --depth=1 -b openssl-${{ env.openssl-version }} https://github.com/openssl/openssl
-          cd openssl
-          CC="clang" CFLAGS="-fsanitize=thread" LDFLAGS="-fsanitize=thread" ./config --prefix=$HOME/openssl --libdir=lib no-makedepend no-apps no-docs no-tests
-          make
-          make -j1 install_sw
+        uses: ./.github/actions/setup-openssl-tsan
+        id: setup-openssl-tsan
 
       - name: 'cache quictls'
         if: contains(matrix.build.install_steps, 'quictls')

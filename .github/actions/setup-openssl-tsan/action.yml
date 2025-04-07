@@ -1,0 +1,21 @@
+name: 'setup openssl-tsan'
+inputs:
+  version:
+    # renovate: datasource=github-tags depName=openssl/openssl versioning=semver extractVersion=^openssl-(?<version>.*)$ registryUrl=https://github.com
+    default: 3.4.1
+runs:
+  using: "composite"
+  steps:
+    - name: 'setup'
+      uses: ./.github/actions/setup-dependency-cached
+      id: setup
+      with:
+        id: openssl-tsan
+        path: openssl
+        version: ${{ inputs.version }}
+        run: |
+          git clone --quiet --depth=1 -b openssl-${{ inputs.version }} https://github.com/openssl/openssl
+          cd openssl
+          CC="clang" CFLAGS="-fsanitize=thread" LDFLAGS="-fsanitize=thread" ./config --prefix=$HOME/openssl --libdir=lib no-makedepend no-apps no-docs no-tests
+          make
+          make -j1 install_sw
