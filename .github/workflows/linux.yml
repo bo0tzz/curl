@@ -38,8 +38,6 @@ permissions: {}
 env:
   MAKEFLAGS: -j 5
   CURL_CLANG_TIDYFLAGS: '-checks=-clang-analyzer-security.insecureAPI.strcpy,-clang-analyzer-optin.performance.Padding,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-clang-analyzer-valist.Uninitialized'
-  # unhandled
-  bearssl-version: 0.6
   # renovate: datasource=github-tags depName=libressl-portable/portable versioning=semver registryUrl=https://github.com
   libressl-version: 4.0.0
   # renovate: datasource=github-tags depName=wolfSSL/wolfssl versioning=semver extractVersion=^v?(?<version>.+)-stable$ registryUrl=https://github.com
@@ -296,6 +294,10 @@ jobs:
             container: 'alpine:3.20'
 
     steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          persist-credentials: false
+
       - name: 'install prereqs'
         if: matrix.build.container == null && !contains(matrix.build.name, 'i686')
         run: |
@@ -330,27 +332,10 @@ jobs:
             py3-impacket py3-asn1 py3-six py3-pycryptodomex \
             perl-time-hires openssh stunnel sudo git openssl
 
-      - name: 'cache bearssl'
+      - name: 'setup bearssl'
         if: contains(matrix.build.install_steps, 'bearssl')
-        uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
-        id: cache-bearssl
-        env:
-          cache-name: cache-bearssl
-        with:
-          path: ~/bearssl
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.bearssl-version }}
-
-      - name: 'build bearssl'
-        if: contains(matrix.build.install_steps, 'bearssl') && steps.cache-bearssl.outputs.cache-hit != 'true'
-        run: |
-          curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
-            https://bearssl.org/bearssl-${{ env.bearssl-version }}.tar.gz
-          tar -xzf bearssl-${{ env.bearssl-version }}.tar.gz
-          cd bearssl-${{ env.bearssl-version }}
-          make
-          mkdir -p $HOME/bearssl/lib $HOME/bearssl/include
-          cp inc/*.h $HOME/bearssl/include
-          cp build/libbearssl.* $HOME/bearssl/lib
+        uses: ./.github/actions/setup-bearssl
+        id: setup-bearssl
 
       - name: 'cache libressl'
         if: contains(matrix.build.install_steps, 'libressl')
@@ -573,10 +558,6 @@ jobs:
           sudo apt-get -o Dpkg::Use-Pty=0 install intel-oneapi-compiler-dpcpp-cpp-and-cpp-classic
           source /opt/intel/oneapi/setvars.sh
           printenv >> $GITHUB_ENV
-
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
-        with:
-          persist-credentials: false
 
       - name: 'autoreconf'
         if: ${{ matrix.build.configure }}

@@ -1,0 +1,26 @@
+name: 'setup bearssl'
+env:
+  # unhandled
+  version: 0.6
+  cache-name: cache-bearssl
+runs:
+  using: "composite"
+  steps:
+    - name: 'cache'
+      uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf # v4
+      id: cache
+      with:
+        path: ~/bearssl
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ env.version }}
+
+    - name: 'build bearssl'
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        curl -LOsSf --retry 6 --retry-connrefused --max-time 999 \
+          https://bearssl.org/bearssl-${{ env.version }}.tar.gz
+        tar -xzf bearssl-${{ env.version }}.tar.gz
+        cd bearssl-${{ env.version }}
+        make
+        mkdir -p $HOME/bearssl/lib $HOME/bearssl/include
+        cp inc/*.h $HOME/bearssl/include
+        cp build/libbearssl.* $HOME/bearssl/lib
