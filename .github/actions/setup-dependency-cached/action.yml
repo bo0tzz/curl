@@ -21,6 +21,10 @@ runs:
         path: ~/${{ inputs.path || inputs.id }}
         key: ${{ runner.os }}-build-cache-${{ inputs.id }}-${{ inputs.version }}
 
+    - id: debug # TODO: Remove
+      shell: bash
+      run: echo "${{ toJSON(steps.cache) }}"
+
     - name: 'build'
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
